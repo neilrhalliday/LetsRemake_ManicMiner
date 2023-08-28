@@ -1,0 +1,23 @@
+rem *** Manic Miner - STOS Basic Recreation
+rem ***
+rem *** Written by Neil Halliday / STOS Coders
+rem *** June 2023
+rem ***
+rem *** main.stos : main program file
+
+key off : curs off : click off : flash off : mode 0 : hide on : auto back off : anim off : synchro off
+palette $000,$777,$005,$007,$500,$700,$504,$707,$050,$070,$055,$077,$550,$770,$555,$777
+
+gosub @LoadAssets
+
+repeat
+    gosub @WaitVBL
+until false
+
+@WaitVBL
+    screen swap : doke $ff8240,$222 : wait vbl : doke $ff8240,$000
+    return
+
+@LoadAssets
+    erase 1 : load "MANIC.MBK",1
+    return
