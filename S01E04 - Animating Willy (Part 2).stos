@@ -1,0 +1,46 @@
+rem *** Manic Miner - STOS Basic Recreation
+rem ***
+rem *** Written by Neil Halliday / STOS Coders
+rem *** June 2023
+rem ***
+rem *** main.stos : main program file
+
+key off : curs off : click off : flash off : mode 0 : hide on : auto back off : anim off : synchro off
+palette $000,$777,$005,$007,$500,$700,$504,$707,$050,$070,$055,$077,$550,$770,$555,$777
+
+gosub @LoadAssets
+gosub @InitMinerWilly
+
+repeat
+    gosub @ReadJoystick
+    gosub @DisplayMinerWilly
+    gosub @WaitVBL
+until false
+
+@WaitVBL
+    screen swap : doke $ff8240,$222 : wait vbl : doke $ff8240,$000
+    return
+
+@LoadAssets
+    erase 1 : load "MANIC.MBK",1
+    return
+
+@InitMinerWilly
+    dim mwan(319) : for xpos=0 to 319 : mwan(xpos) = 1 + ((xpos mod 8)/2) : next xpos
+    MWD = 0 : MWWS = 1 : MWWC = 2 : MWWCC = MWWC : MWXPOS = 16 : MWYPOS = 80
+    gosub @SetOFS
+    return
+
+@SetOFS
+    if MWD = 0 then MWOFS = 4 : else MWOFS = 0
+    return
+
+@DisplayMinerWilly
+    if MWD = 0 then MWXPOS = MWXPOS + MWSPD : else MWXPOS = MWXPOS - MWSPD
+    sprite 1,MWXPOS,MWYPOS,mwan(MWXPOS) + MWOFS
+    return
+
+@ReadJoystick
+    JL = jleft : JR = jright : JF = fire : JSTCK = (JL or JR)
+    if not(JSTCK) then MWSPD = 0 : else MWSPD = MWWS : if JL then MWD = -1 : gosub @SetOFS : else MWD = 0 : gosub @SetOFS
+    return
