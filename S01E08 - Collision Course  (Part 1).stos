@@ -1,0 +1,130 @@
+rem *** Manic Miner - STOS Basic Recreation
+rem ***
+rem *** Written by Neil Halliday / STOS Coders
+rem *** June 2023
+rem ***
+rem *** main.stos : main program file
+
+key off : curs off : click off : flash off : mode 0 : hide on : auto back off : anim off : synchro off
+palette $000,$777,$005,$007,$500,$700,$504,$707,$050,$070,$055,$077,$550,$770,$555,$777
+erase 10 : reserve as screen 10
+
+// Create some memory for the tile map data
+dim map(511)
+
+gosub @LoadAssets
+gosub @MainMenu
+end
+
+// The main menu
+@MainMenu
+    QUIT = false
+    repeat
+        gosub @NewGame
+    until QUIT
+    return
+
+@NewGame
+    LVL = 1 : LIVES = 3 : GAMEOVER = false
+    gosub @InitLevel   
+
+    // Level loop
+    repeat
+        gosub @InitMinerWilly
+        LVLDONE = false : MWDEAD = false
+
+        // Gameplay loop
+        repeat
+            gosub @ReadJoystick
+            gosub @DisplayMinerWilly
+            gosub @WaitVBL
+        until LVLDON or MWDEAD
+
+        if MWDEAD then dec LIVES : GAMEOVER = (LIVES = 0)
+        if LVLDONE then inc LVL : gosub @InitLevel
+    until GAMEOVER
+    return
+
+@InitLevel
+    restore
+    read LVLNAME$
+    
+    for t = 0 to 511
+        read TNO
+        map(t) = TNO
+    next t
+
+    LVL$ = str$(LVL) - " " : if len(LVL$) = 1 then LVL$ = "0" + LVL$
+    load "LEVEL" + LVL$ + ".PI1",10
+    screen copy 10 to physic : screen copy 10 to back
+
+    return
+
+@WaitVBL
+    screen swap : doke $ff8240,$222 : wait vbl : doke $ff8240,$000
+    return
+
+@LoadAssets
+    erase 1 : load "MANIC.MBK",1
+    return
+
+@InitMinerWilly
+    FALLING = 1 : JUMPING = 2
+    dim mwan(319) : for xpos=0 to 319 : mwan(xpos) = 1 + ((xpos mod 8)/2) : next xpos
+    dim jmps(359) : for ang = 0 to 359 : jmps(ang) = -(sin(rad(ang))*20) : next ang
+    MWD = 0 : MWWS = 1 : MWWC = 2 : MWWCC = MWWC : MWXPOS = 16 : MWYPOS = 80 : MWSTATE = FALLING : MWJMPANG = 0 : MWVSPD = 0
+    gosub @SetOFS
+    return
+
+@SetOFS
+    if MWD = 0 then MWOFS = 4 : else MWOFS = 0
+    return
+
+@DisplayMinerWilly
+    gosub @ApplyGravity
+    if MWSTATE = FALLING then MWVSPD = 1 : A = MWYPOS : else MWVSPD = 0 : A = MWYPOS + jmps(MWJMPANG) : MWJMPANG = MWJMPANG + 2 : MWSTATE = JUMPING : if MWJMPANG > 180 then gosub @ResetJump
+    if MWD = 0 then MWXPOS = MWXPOS + MWSPD : else MWXPOS = MWXPOS - MWSPD
+    sprite 1,MWXPOS,A,mwan(MWXPOS) + MWOFS
+    return
+
+@StartJump
+    MWSTATE = JUMPING : MWJMPANG = 0 : MWVSPD = 0
+    return
+
+@ResetJump
+    MWSTATE = FALLING : MWJMPANG = 0
+    return
+
+@ApplyGravity
+    MWYPOS = MWYPOS + MWVSPD
+    if MWYPOS > 80 then MWYPOS = 80
+    return
+
+@ReadJoystick
+    if MWSTATE = JUMPING then goto @EndReadJoystick
+    JL = jleft : JR = jright : JF = fire : JSTCK = (JL or JR)
+    if JF then gosub @StartJump
+    if not(JSTCK) then MWSPD = 0 : else MWSPD = MWWS : if JL then MWD = -1 : gosub @SetOFS : else MWD = 0 : gosub @SetOFS
+@EndReadJoystick
+    return
+
+
+
+@LevelData
+data "Central Cavern"
+data 01,00,00,00,00,00,00,00,00,06,00,05,00,00,00,00,05,00,00,00,00,00,00,00,00,00,00,00,00,06,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,06,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,05,06,00,00,05,00,00,00,01
+data 01,02,02,02,02,02,02,02,02,02,02,02,02,02,03,03,03,03,02,03,03,03,03,02,02,02,02,02,02,02,02,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,06,01
+data 01,02,02,02,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01,01,01,00,05,00,00,00,00,00,00,00,00,00,01
+data 01,02,02,02,02,00,00,00,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,04,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,02,02,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,05,00,00,00,00,00,00,00,01,01,01,03,03,03,03,03,02,02,02,01
+data 01,00,00,00,00,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,00,01
+data 01,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,02,01
